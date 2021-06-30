@@ -28,6 +28,7 @@ static int lept_parse_value(lept_context* c, lept_value* v) {
     switch (*c->json) {
         case 'n':  return lept_parse_null(c, v);
         case '\0': return LEPT_PARSE_EXPECT_VALUE;
+        // 练习一：此处修正LEPT_PARSE_ROOT_NOT_SINGULAR，若json在一个值之后，空白之后还有其他字符，则要返回LEPT_PARSE_NOT_SINGULAR
         default:   return LEPT_PARSE_INVALID_VALUE;
     }
 }
