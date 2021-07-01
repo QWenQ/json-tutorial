@@ -24,7 +24,7 @@ static int lept_parse_null(lept_context* c, lept_value* v) {
     return LEPT_PARSE_OK;
 }
 
-// 参考lept_parse_null()的实现和调用方，解析true和false值。
+// 练习三：参考lept_parse_null()的实现和调用方，解析true和false值。
 
 static int lept_parse_value(lept_context* c, lept_value* v) {
     switch (*c->json) {
