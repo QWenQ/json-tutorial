@@ -24,8 +24,26 @@ static int lept_parse_null(lept_context* c, lept_value* v) {
     return LEPT_PARSE_OK;
 }
 
-
 // 练习三：参考lept_parse_null()的实现和调用方，解析true和false值。
+// 解析true
+static int lept_parse_true(lept_context* c, lept_value* v) {
+    EXPECT(C, 't');
+    if (c->json[0] != 'r' || c->json[1] != 'u' || c->json[2] != 'e')
+        return LEPT_PARSE_INVALID_VALUE;
+    c->json += 3;
+    v->type = LEPT_TRUE;
+    return LEPT_PARSE_OK;
+}
+
+// 解析false
+static int lept_parse_false(lept_context* c, lept_value* v) {
+    EXCEPT(C, 'f');
+    if (c->json[0] != 'a' || c->json[1] != 'l' || c->json[2] != 's' || c->json[3] != 'e')
+        return LEPT_PARSE_INVALID_VALUE;
+    c->json += 4;
+    v->type = LEPT_FALSE;
+    return LEPT_PARSE_OK;
+}
 
 static int lept_parse_value(lept_context* c, lept_value* v) {
     switch (*c->json) {
@@ -46,8 +64,8 @@ int lept_parse(lept_value* v, const char* json) {
     lept_parse_whitespace(&c);  
     lept_type ret = lept_parse_value(&c, v);
     lept_parse_whitespace(&c);
-    if (ret == LEPT_PARSE_OK && lept_parse_value(&c, v) == LEPT_PARSE_OK)  // 若value输入有效，并且 ws value ws 之后，还有其他字符，则返回LEPT_PARSE_SINGULAR
-        return LEPT_PARSE_SINGULAR;
+    if (ret == LEPT_PARSE_OK && lept_parse_value(&c, v) != LEPT_PARSE_EXPECT_VALUE)  // 若value输入有效，并且 ws value ws 之后，还有其他字符，则返回LEPT_PARSE_ROOT_NOT_SINGULAR
+        return LEPT_PARSE_ROOT_NOT_SINGULAR;
     return ret;
 }
 
