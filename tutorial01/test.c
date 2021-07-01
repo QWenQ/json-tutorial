@@ -27,7 +27,23 @@ static void test_parse_null() {
     EXPECT_EQ_INT(LEPT_NULL, lept_get_type(&v));
 }
 
-// 参考test_parse_null()，加入test_parse_true()、test_parse_false()的单元测试。
+// 练习二：参考test_parse_null()，加入test_parse_true()、test_parse_false()的单元测试。
+// test_parse_true()
+static void test_parse_true() {
+    lept_value v;
+    v.type = LEPT_TRUE;
+    EXCEPT_EQ_INT(LEPT_PARSE_OK, lept_parse(&v, "true"));
+    EXCEPT_EQ_INT(LEPT_TRUE, lept_get_type(&v));
+}
+
+// test_parse_false()
+static void test_parse_false() {
+    lept_value v;
+    v.type = LEPT_FALSE;
+    EXCEPT_EQ_INT(LEPT_PARSE_OK, lept_parse(&v, "false"));
+    EXCEPT_EQ_INT(LEPT_FALSE, lept_get_type(&v));
+}
+
 
 static void test_parse_expect_value() {
     lept_value v;
