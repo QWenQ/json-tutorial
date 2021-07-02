@@ -2,7 +2,7 @@
 #include <assert.h>  /* assert() */
 #include <stdlib.h>  /* NULL */
 
-#define EXPECT(c, ch)       do { assert(*c->json == (ch)); c->json++; } while(0)
+#define EXPECT(c, ch) do { assert(*c->json == (ch)); c->json++; } while(0)
 
 typedef struct {
     const char* json;
@@ -27,7 +27,7 @@ static int lept_parse_null(lept_context* c, lept_value* v) {
 // 练习三：参考lept_parse_null()的实现和调用方，解析true和false值。
 // 解析true
 static int lept_parse_true(lept_context* c, lept_value* v) {
-    EXPECT(C, 't');
+    EXPECT(c, 't');
     if (c->json[0] != 'r' || c->json[1] != 'u' || c->json[2] != 'e')
         return LEPT_PARSE_INVALID_VALUE;
     c->json += 3;
@@ -37,7 +37,7 @@ static int lept_parse_true(lept_context* c, lept_value* v) {
 
 // 解析false
 static int lept_parse_false(lept_context* c, lept_value* v) {
-    EXCEPT(C, 'f');
+    EXPECT(c, 'f');
     if (c->json[0] != 'a' || c->json[1] != 'l' || c->json[2] != 's' || c->json[3] != 'e')
         return LEPT_PARSE_INVALID_VALUE;
     c->json += 4;
