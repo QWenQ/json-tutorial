@@ -15,6 +15,42 @@ static void lept_parse_whitespace(lept_context* c) {
     c->json = p;
 }
 
+// 练习一：重构合并lept_parse_true()、lept_parse_false()、lept_parse_null()为lept_parse_literal()。
+
+static int lept_parse_literal(lept_context* c, lept_value* v) {
+    char first_char = c->json[0];
+    if (first_char == 't')
+        EXPECT(c, 't');
+    else if (first_char == 'f')
+        EXPECT(c, 'f');
+    else
+        EXPECT(c, 'n');
+    
+    switch (first_char) {
+    case 't':
+        if (c->json[0] != 'r' || c->json[1] != 'u' || c->json[2] != 'e')
+            return LEPT_PARSE_INVALID_VALUE;
+        c->json += 3;
+        v->type = LEPT_TRUE;
+        break;
+    case 'f':
+        if (c->json[0] != 'a' || c->json[1] != 'l' || c->json[2] != 's' || c->json[3] != 'e')
+            return LEPT_PARSE_INVALID_VALUE;
+        c->json += 4;
+        v->type = LEPT_FALSE;
+        break;
+    case 'n':
+        if (c->json[0] != 'u' || c->json[1] != 'l' || c->json[2] != 'l')
+            return LEPT_PARSE_INVALID_VALUE;
+        c->json += 3;
+        v->type = LEPT_NULL;
+        break;
+    }
+    return LEPT_PARSE_OK;
+
+}
+
+/*
 static int lept_parse_true(lept_context* c, lept_value* v) {
     EXPECT(c, 't');
     if (c->json[0] != 'r' || c->json[1] != 'u' || c->json[2] != 'e')
@@ -41,12 +77,16 @@ static int lept_parse_null(lept_context* c, lept_value* v) {
     v->type = LEPT_NULL;
     return LEPT_PARSE_OK;
 }
-
+*/
+/*
+练习三：
+按 JSON number 的语法在 lept_parse_number() 校验，不符合标准的程况返回 LEPT_PARSE_INVALID_VALUE 错误码。
+*/
 static int lept_parse_number(lept_context* c, lept_value* v) {
     char* end;
     /* \TODO validate number */
     v->n = strtod(c->json, &end);
-    if (c->json == end)
+    if (c->json == end)  // 若字符串str为空或者只有whitespace
         return LEPT_PARSE_INVALID_VALUE;
     c->json = end;
     v->type = LEPT_NUMBER;
@@ -55,9 +95,9 @@ static int lept_parse_number(lept_context* c, lept_value* v) {
 
 static int lept_parse_value(lept_context* c, lept_value* v) {
     switch (*c->json) {
-        case 't':  return lept_parse_true(c, v);
-        case 'f':  return lept_parse_false(c, v);
-        case 'n':  return lept_parse_null(c, v);
+        case 't':  return lept_parse_literal(c, v);
+        case 'f':  return lept_parse_literal(c, v);
+        case 'n':  return lept_parse_literal(c, v);
         default:   return lept_parse_number(c, v);
         case '\0': return LEPT_PARSE_EXPECT_VALUE;
     }

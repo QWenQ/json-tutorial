@@ -1,7 +1,12 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "leptjson.h"
+
+// 练习四需要新增的两个标准库
+#include <math.h>
+#include <ctype.h>
+
 
 static int main_ret = 0;
 static int test_count = 0;
@@ -50,6 +55,8 @@ static void test_parse_false() {
         EXPECT_EQ_DOUBLE(expect, lept_get_number(&v));\
     } while(0)
 
+
+// 练习二：加入维基百科双精度浮点数的一些边界值至单元测试，如min subnormal positive double、max double等。
 static void test_parse_number() {
     TEST_NUMBER(0.0, "0");
     TEST_NUMBER(0.0, "-0");
@@ -70,6 +77,15 @@ static void test_parse_number() {
     TEST_NUMBER(1.234E+10, "1.234E+10");
     TEST_NUMBER(1.234E-10, "1.234E-10");
     TEST_NUMBER(0.0, "1e-10000"); /* must underflow */
+    // Min. subnormal positive double
+    TEST_NUMBER(4.94066e-324, "4.94066e-324");
+    // Max. subnormal double
+    TEST_NUMBER(2.22507e-308, "2.22507e-308");
+    // Min. normal positive double
+    TEST_NUMBER(2.22507e-308, "2.22507e-308");
+    // Max. Double
+    TEST_NUMBER(1.79769e308, "1.79769e308");
+
 }
 
 #define TEST_ERROR(error, json)\
@@ -80,16 +96,25 @@ static void test_parse_number() {
         EXPECT_EQ_INT(LEPT_NULL, lept_get_type(&v));\
     } while(0)
 
+
+
+
 static void test_parse_expect_value() {
     TEST_ERROR(LEPT_PARSE_EXPECT_VALUE, "");
     TEST_ERROR(LEPT_PARSE_EXPECT_VALUE, " ");
 }
 
+/*
+练习三：
+去掉 test_parse_invalid_value() 和 test_parse_root_not_singular 中的 #if 0 ... #endif，
+执行测试，证实测试失败。
+*/
+
 static void test_parse_invalid_value() {
     TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "nul");
     TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "?");
 
-#if 0
+
     /* invalid number */
     TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "+0");
     TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "+1");
@@ -99,25 +124,38 @@ static void test_parse_invalid_value() {
     TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "inf");
     TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "NAN");
     TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "nan");
-#endif
+
 }
 
 static void test_parse_root_not_singular() {
     TEST_ERROR(LEPT_PARSE_ROOT_NOT_SINGULAR, "null x");
 
-#if 0
     /* invalid number */
     TEST_ERROR(LEPT_PARSE_ROOT_NOT_SINGULAR, "0123"); /* after zero should be '.' , 'E' , 'e' or nothing */
     TEST_ERROR(LEPT_PARSE_ROOT_NOT_SINGULAR, "0x0");
     TEST_ERROR(LEPT_PARSE_ROOT_NOT_SINGULAR, "0x123");
-#endif
+
 }
 
+
+/*
+练习四：
+去掉 test_parse_number_too_big() 中的 #if 0 ... #endi ，执行测试，证实测试失败。
+仔细阅读 strtod()，看看怎么样从返回值得知数值是否过大，以返回 LEPT_PARSE_NUMBER_TOO_BIG 错误码。
+(提示：这里需要 #include 额外两个标准库头文件。)
+*/
+
 static void test_parse_number_too_big() {
-#if 0
+/*
+返回值数值过大:
+If the converted value falls out of range of corresponding return type,
+range error occurs and HUGE_VAL, HUGE_VALF or HUGE_VALL is returned.
+#include <math.h> -- HUGE_VAL, HUGE_VALF or HUGE_VALL
+#include <ctype.h> -- isspace() ???????
+
+*/
     TEST_ERROR(LEPT_PARSE_NUMBER_TOO_BIG, "1e309");
     TEST_ERROR(LEPT_PARSE_NUMBER_TOO_BIG, "-1e309");
-#endif
 }
 
 static void test_parse() {
