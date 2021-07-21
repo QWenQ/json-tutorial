@@ -1,0 +1,6 @@
+作业二：
+  1.这里的重构可以理解为将共有的具体行为抽象化、模板化，而不是简单合并成一个函数
+  2.大数的处理问题：
+    strtod()函数"If the converted value falls out of range of corresponding return type, range error occurs and HUGE_VAL, HUGE_VALF or HUGE_VALL is returned."
+      "range error" -> errno == ERANGE(errno.h)，errno is a preprocessor macro used for error indication.
+      "HUGE_VAL, HUGE_VALF or HUGE_VALL" -> math.h

@@ -1,0 +1,10 @@
+# ninja log v5
+3	93	6485023301035209	CMakeFiles/leptjson_test.dir/test.c.obj	130a9af31a769912
+1	64	6485023300756286	CMakeFiles/leptjson.dir/leptjson.c.obj	1deb8f897e9cc1d4
+109	384	6485023303748645	leptjson_test.exe	9f6d47b30f8db35c
+65	109	6485023301124972	leptjson.lib	4a5da7e773a082ed
+3	218	6485025767164710	build.ninja	f49dc54da6623df2
+1	233	6485025768960113	CMakeFiles/leptjson.dir/leptjson.c.obj	1deb8f897e9cc1d4
+3	258	6485025769189477	CMakeFiles/leptjson_test.dir/test.c.obj	130a9af31a769912
+234	274	6485025769349967	leptjson.lib	4a5da7e773a082ed
+274	429	6485025770682382	leptjson_test.exe	9f6d47b30f8db35c

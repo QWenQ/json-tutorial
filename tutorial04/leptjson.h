@@ -1,4 +1,4 @@
-#ifndef LEPTJSON_H__
+﻿#ifndef LEPTJSON_H__
 #define LEPTJSON_H__
 
 #include <stddef.h> /* size_t */
