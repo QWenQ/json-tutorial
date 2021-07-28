@@ -8,6 +8,7 @@
 #include <math.h>    /* HUGE_VAL */
 #include <stdlib.h>  /* NULL, malloc(), realloc(), free(), strtod() */
 #include <string.h>  /* memcpy() */
+#include <ctype.h>   /* isalpha() */
 
 #ifndef LEPT_PARSE_STACK_INIT_SIZE
 #define LEPT_PARSE_STACK_INIT_SIZE 256
@@ -90,13 +91,102 @@ static int lept_parse_number(lept_context* c, lept_value* v) {
     return LEPT_PARSE_OK;
 }
 
+#define IS_HEX(ch) ((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F'))
+
 static const char* lept_parse_hex4(const char* p, unsigned* u) {
-    /* \TODO */
+    /* \TODO : 将字符串形式的4位十六进制数解析为十六进制的数值 */
+    unsigned tmp = 0x0;
+    for (int i = 3; i >= 0; i--)
+    {
+        if (!IS_HEX(*p)) // 若u之后不为4位十六进制数，则返回NULL
+            return NULL;
+        if (isalpha(*p))
+        {
+            char ch = toupper(*p);
+            tmp += (ch - 'A' + 0xA) << (i * 4);
+        }
+        else
+            tmp += (*p - '0') << (i * 4);
+        p++;
+    }
+
+    *u = tmp;
     return p;
 }
+/*  考虑了high surrogate 与 low surrogate 的情况
+static const char* lept_parse_hex4(const char* p, unsigned* u) {
+    unsigned H = 0;
+    unsigned L = 0;
+    // 处理高代理项
+    for (int i = 3; i >= 0; i--)
+    {
+        int to_left = 4 * i;
+        if (isalpha(*p))
+        {
+            char ch = tolower(*p);
+            H += (0xa + ch - 'a') << to_left;
+        }
+        else
+            H += (*p - '0') << to_left;
+        p++;
+    }
+    if (!(H >= 0xd800 && H <= 0xdbff))  // invalid high surrogate
+        return NULL;
+    
+    // 处理低代理项
+    if (*p == '\\' && *(p + 1) == 'u')
+    {
+        p++;
+        for (int i = 3; i >= 0; i--)
+        {
+            int to_left = 4 * i;
+            if (isalpha(*p))
+            {
+                char ch = toupper(*p);
+                L += (0xA + ch - 'A') << to_left;
+            }
+            else
+                L += (*p - '0') << to_left;
+            p++;
+        }
+        if (!(L >= 0xdc00 && L <= 0xdfff))  // invalid low surrogate
+            return NULL;
+    }
+
+    // 计算码点
+    *u = 0x10000 + (H - 0xD800) * 0x400 + (L - 0xDC00);
+    return p;
+}
+*/
 
 static void lept_encode_utf8(lept_context* c, unsigned u) {
     /* \TODO */
+    assert(u >= 0x0000 && u <= 0x10FFFF);
+    if (u >= 0x0000 && u <= 0x007F)  // 1个字节
+    {
+        PUTC(c, u);
+    }
+    else if (u >= 0x0080 && u <= 0x07FF)  // 2个字节
+    {
+        PUTC(c, ((u >> 6) & 0x1F) | 0xC0);
+        PUTC(c, (u        & 0x3F) | 0x80);
+    }
+    else if (u >= 0x0800 && u <= 0xFFFF)  // 3个字节
+    {
+        PUTC(c, 0xE0 | ((u >> 12) & 0xFF));
+        PUTC(c, 0x80 | ((u >>  6) & 0x3F));
+        PUTC(c, 0x80 | ( u        & 0x3F));
+        // OutputByte(0xE0 | ((u >> 12) & 0xFF)); /* 0xE0 = 11100000 */
+        // OutputByte(0x80 | ((u >>  6) & 0x3F)); /* 0x80 = 10000000 */
+        // OutputByte(0x80 | ( u        & 0x3F)); /* 0x3F = 00111111 */
+    }
+    else // u >= 10000 && u <= 0x10FFFF   4个字节
+    {
+        PUTC(c, 0xF0 | ((u >> 18) & 0x07));
+        PUTC(c, 0x80 | ((u >> 12) & 0x3F));
+        PUTC(c, 0x80 | ((u >> 6)  & 0x3F));
+        PUTC(c, 0x80 |  (u        & 0x3F));
+    }
 }
 
 #define STRING_ERROR(ret) do { c->top = head; return ret; } while(0)
@@ -128,7 +218,15 @@ static int lept_parse_string(lept_context* c, lept_value* v) {
                     case 'u':
                         if (!(p = lept_parse_hex4(p, &u)))
                             STRING_ERROR(LEPT_PARSE_INVALID_UNICODE_HEX);
-                        /* \TODO surrogate handling */
+                        /* \TODO surrogate pair handling */
+                        if (u >= 0xD800 && u <= 0xDBFF)  // 若 high surrogate 存在，则要考虑BMP的情况
+                        {
+                            unsigned tmp_u = 0x0;
+                            if (!(*p == '\\' && *(p + 1) == 'u' && (p = lept_parse_hex4((p + 2), &tmp_u))) 
+                                || !(tmp_u >= 0xDC00 && tmp_u <= 0xDFFF))              // 若 low surrogate 不存在或者不在合法码点范围内
+                                return LEPT_PARSE_INVALID_UNICODE_SURROGATE;
+                            u = 0x10000 + (u - 0xD800) * 0x400 + (tmp_u - 0xDC00);
+                        }
                         lept_encode_utf8(c, u);
                         break;
                     default:
