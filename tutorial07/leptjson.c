@@ -1,3 +1,5 @@
+#pragma warning(disable : 4996)
+
 #ifdef _WINDOWS
 #define _CRTDBG_MAP_ALLOC
 #include <crtdbg.h>
@@ -346,8 +348,156 @@ int lept_parse(lept_value* v, const char* json) {
     return ret;
 }
 
+
+static void decnum_to_hexstr(unsigned int dec, char* hstr, unsigned int len) {
+    const char hex_chars[16] = {
+        '0', '1', '2', '3', '4', '5', '6', '7', 
+        '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' 
+    };
+    for (int i = len - 1; i >= 0; i--)
+    {
+        unsigned int mod = dec & 0x000F;
+        hstr[i] = hex_chars[mod];
+        dec >>= 4;
+    }
+}
+#if 0
+    static void lept_decode_utf8(lept_context* c, const char** p_ch) {
+        PUTC(c, '\\');
+        PUTC(c, 'u');
+    
+    
+        if (**p_ch <= 0x7f && **p_ch >= 0x20)
+        {
+            PUTC(c, **p_ch);
+            return;
+        }
+
+        char buffer[5];
+        unsigned int utf_num = 0;
+        /*少于 0x20 的字符需要转义为 \u00xx 形式*/
+
+        if (**p_ch <0x20)
+        {
+            utf_num = **p_ch & 0x7F;
+        }
+        else if (**p_ch <= 0xdf) // 占2个字节
+        {
+            unsigned int n1 = **p_ch & 0x1F;
+            *p_ch = *p_ch + 1;
+            unsigned int n2 = **p_ch & 0x3F;
+            utf_num = (n1 << 6) | n2;
+        }
+        else if (**p_ch <= 0xef) // 占3个字节
+        {
+            unsigned int n1 = **p_ch & 0x0F;
+            *p_ch = *p_ch + 1;
+            unsigned int n2 = **p_ch & 0x3F;
+            *p_ch = *p_ch + 1;
+            unsigned int n3 = **p_ch & 0x3F;
+            utf_num = (((n1 << 6) | n2) << 6) | n3;
+        }
+        else // **p_ch <= 0xf4  占4个字节
+        {
+            unsigned int n1 = **p_ch & 0x07;
+            *p_ch = *p_ch + 1;
+            unsigned int n2 = **p_ch & 0x3F;
+            *p_ch = *p_ch + 1;
+            unsigned int n3 = **p_ch & 0x3F;
+            *p_ch = *p_ch + 1;
+            unsigned int n4 = **p_ch & 0x3F;
+            utf_num = (((((n1 << 6) | n2) << 6) | n3) << 6) | n4;
+        }
+        decnum_to_hexstr(utf_num, buffer, 4);
+        buffer[4] = '\0';
+        memcpy((char*)lept_context_push(c, 4), buffer, 4);
+    }
+#endif
+
+/*origin version*/
+#if 0
 static void lept_stringify_string(lept_context* c, const char* s, size_t len) {
     /* ... */
+    // Json string = quotation-mark *char quotation-mark
+    PUTC(c, '\"');
+    char* p = s;
+    char* end_s = s + len;
+    while (p < end_s)
+    {
+        switch (*p)
+        {
+        case '\"':PUTS(c, "\\\"", 2);break;
+        case '\\':PUTS(c, "\\\\", 2);break;
+        case '/' :PUTS(c, "/", 1);   break;  
+        case '\b':PUTS(c, "\\b", 2);break;
+        case '\f':PUTS(c, "\\f", 2);break;
+        case '\n':PUTS(c, "\\n", 2);break;
+        case '\r':PUTS(c, "\\r", 2);break;
+        case '\t':PUTS(c, "\\t", 2);break;
+        default:
+            if (*p < 0x20)
+            {
+                char buffer[7];
+                sprintf_s(buffer, 7, "\\u%04X", *p);
+                PUTS(c, buffer, 6);
+            }
+            else
+                PUTC(c, *p);
+            break;
+            /*utf-8*/
+            //default:lept_decode_utf8(c, &p);break;
+        }
+        p++;
+    }
+    PUTC(c, '\"');
+}
+#endif
+/*opt version-1*/
+static void lept_stringify_string(lept_context* c, const char* s, size_t len) {
+    /* ... */
+    // Json string = quotation-mark *char quotation-mark
+    const char hex_chars[16] = {
+        '0', '1', '2', '3', '4', '5', '6', '7',
+        '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
+    };
+    char* p = lept_context_push(c, len * 6 + 2);
+    *p++ = '\"';
+    for (size_t i = 0; i < len; i++)
+    {
+        switch (s[i])
+        {
+            case '\"':*p++ = '\\';*p++ = '\"';break;
+            case '\\':*p++ = '\\';*p++ = '\\';break;
+            case '/':*p++ = '/';break;
+            case '\b':*p++ = '\\';*p++ = 'b';break;
+            case '\f':*p++ = '\\';*p++ = 'f';break;
+            case '\n':*p++ = '\\';*p++ = 'n';break;
+            case '\r':*p++ = '\\';*p++ = 'r';break;
+            case '\t':*p++ = '\\';*p++ = 't';break;
+            default:
+                if (s[i] < 0x20)
+                {
+                    /*少于 0x20 的字符需要转义为 \u00xx 形式*/
+                    *p++ = '\\';
+                    *p++ = 'u';
+                    *p++ = '0';
+                    *p++ = '0';
+                    char ch = s[i];
+                    for (int i = 0; i < 2; i++)
+                    {
+                        *p++ = hex_chars[(unsigned int)ch & 0xF];
+                        ch >>= 4;
+                    }
+                }
+                else
+                    *p++ = s[i];
+                break;
+                /*utf-8*/
+                //default:lept_decode_utf8(c, &p);break;
+        }
+    }
+    *p++ = '\"';
+    c->top = (p - c->stack) / sizeof(char);
 }
 
 static void lept_stringify_value(lept_context* c, const lept_value* v) {
@@ -359,9 +509,27 @@ static void lept_stringify_value(lept_context* c, const lept_value* v) {
         case LEPT_STRING: lept_stringify_string(c, v->u.s.s, v->u.s.len); break;
         case LEPT_ARRAY:
             /* ... */
+            PUTC(c, '[');
+            for (size_t i = 0; i < v->u.a.size; i++)
+            {
+                lept_stringify_value(c, &v->u.a.e[i]);
+                if (i + 1 < v->u.a.size)
+                    PUTC(c, ',');
+            }
+            PUTC(c, ']');
             break;
         case LEPT_OBJECT:
             /* ... */
+            PUTC(c, '{');
+            for (size_t i = 0; i < v->u.o.size; i++)
+            {
+                lept_stringify_string(c, v->u.o.m[i].k, v->u.o.m[i].klen);
+                PUTC(c, ':');
+                lept_stringify_value(c, &v->u.o.m[i].v);
+                if (i + 1 < v->u.o.size)
+                    PUTC(c, ',');
+            }
+            PUTC(c, '}');
             break;
         default: assert(0 && "invalid type");
     }
